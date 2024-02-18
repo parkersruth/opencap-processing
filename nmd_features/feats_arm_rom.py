@@ -92,12 +92,12 @@ def arm_rom_trc_feats(xyz, markers, xyz_neu):
 
     return {
             'arm_rom_max_mean_sa': float(max_mean_sa),
-            'arm_rom_mean_ea_at_max_mean_sa': float(mean_ea_at_max_mean_sa),
             'arm_rom_max_min_sa': float(max_min_sa),
             'arm_rom_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),
+            # 'arm_rom_mean_ea_at_max_mean_sa': float(mean_ea_at_max_mean_sa),
             'arm_rom_rw_area': float(rw_area),
-            'arm_rom_rw_sphere': float(rw_sphere),
-            'arm_rom_rw_cube': float(rw_cube),
+            # 'arm_rom_rw_sphere': float(rw_sphere),
+            # 'arm_rom_rw_cube': float(rw_cube),
            }
 
 

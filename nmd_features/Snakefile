@@ -11,6 +11,7 @@ trial_types = ['brooke', 'arm_rom', 'curls', '10mwt', '10mwrt',
 FEAT_FILES = []
 for trial_type in trial_types:
     df_temp = df_trial[df_trial.trial_clean == trial_type]
+    # df_temp = df_temp[~df_temp.pid.str.contains('DB')]
     FEAT_FILES += df_temp.apply(
         lambda row: f'{datadir}/opencap_features/{trial_type}/{row.pid}__{row.sid}__{row.trial}.csv',
         axis=1).to_list()

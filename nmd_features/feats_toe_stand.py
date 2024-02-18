@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from utilsLoaders import read_trc, read_mot
-from utils import center_of_mass
+from utils import center_of_mass, angle_between_all
 
 
 def toe_stand_trc_feats(xyz, markers, fps, com):
@@ -16,21 +16,27 @@ def toe_stand_trc_feats(xyz, markers, fps, com):
     com_start = com[:start_win,:].mean(0)
     com -= com_start
 
-    com_height = com_start[1]
-    com /= com_height
+    # com_height = com_start[1]
+    # com /= com_height
 
     rc = xyz[:,np.argmax(markers=='r_calc_study'),:]
     lc = xyz[:,np.argmax(markers=='L_calc_study'),:]
     rc -= rc[:start_win,:].mean(0)
     lc -= lc[:start_win,:].mean(0)
 
-    int_com_elev = np.sum(com[:,1])
-    int_com_fwd = np.sum(com[:,2])
-    # int_r_heel_elev = np.sum(rc[:,1])
-    # int_l_heel_elev = np.sum(lc[:,1])
-    int_mean_heel_elev = np.sum((rc[:,1] + lc[:,1])/2)
+    dt = 1/fps
 
-    # TODO normalize by height or foot length
+    int_com_elev = np.sum(np.clip(com[:,1], 0, None)) * dt
+    int_com_fwd = np.sum(com[:,2]) * dt
+    int_mean_heel_elev = np.sum(np.clip((rc[:,1] + lc[:,1])/2, 0, None)) * dt
+
+    # Trunk lean
+    c7 = xyz[:,np.argmax(markers=='r_C7'),:]
+    trunk = c7 - com.copy()
+    grav = np.zeros_like(trunk)
+    grav[:,1] = -1
+    trunk_lean = angle_between_all(-grav, trunk) * 180/np.pi
+    int_trunk_lean = np.sum(trunk_lean) * dt
 
     # or swap CoM vertical with peak knee flexion?
 
@@ -54,8 +60,9 @@ def toe_stand_trc_feats(xyz, markers, fps, com):
     # return int_com_elev, int_com_fwd, int_mean_heel_elev
     return {
             'toe_stand_int_com_elev': float(int_com_elev),
-            'toe_stand_int_com_fwd': float(int_com_fwd),
+            # 'toe_stand_int_com_fwd': float(int_com_fwd),
             'toe_stand_int_mean_heel_elev': float(int_mean_heel_elev),
+            'toe_stand_int_trunk_lean': float(int_trunk_lean),
            }
 
 
@@ -77,7 +84,13 @@ def toe_stand_mot_feats(df):
 
 def feats_toe_stand(trc_fpath, mot_fpath, model_fpath):
     fps, markers, xyz = read_trc(trc_fpath)
+
     com_xyz = center_of_mass(model_fpath, mot_fpath)
+
+    # rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    # lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
+    # com_xyz = (rh + lh) / 2
+
     trc_feats = toe_stand_trc_feats(xyz, markers, fps, com_xyz)
 
     df = read_mot(mot_fpath)

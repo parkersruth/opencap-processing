@@ -10,6 +10,8 @@ from numpy.linalg import norm
 
 from utilsLoaders import read_trc, read_mot
 from utils import center_of_mass, center_of_mass_vel
+from utils import segment_gait_cycles
+from utils import angle_between_all
 
 
 def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
@@ -20,35 +22,98 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
     com_xz = com[:,[0,2]].copy()
     direction = com_xz[0,:] - com_xz[-1,:]
     direction /= norm(direction)
-    
+
+    # LP filter kernel
+    win = ss.windows.hann(int(0.5*fps))
+    win /= np.sum(win)
+
     # compute lateral sway
     comv_xz = comv[:,[0,2]].copy()
     comv_xz -= np.outer(comv_xz @ direction, direction)
     com_sway = comv_xz[:,0]
-    win = ss.windows.hann(int(0.5*fps))
-    win /= np.sum(win)
     com_sway = ss.convolve(com_sway, win, mode='same')
-    
+
+    # compute lateral lean
+    direc = np.array([direction[0], 0, direction[1]])
+    agrav = np.array([0, 1, 0])
+    perp = np.cross(direc, agrav)
+    perp /= norm(perp)
+    new_basis = np.stack([agrav, perp, direc])
+    P = np.linalg.inv(new_basis)
+    c7 = xyz[:,np.argmax(markers=='r_C7'),:]
+    rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
+    midhip = (rh + lh) / 2
+    trunk = c7 - midhip.copy()
+    trunk = (P @ trunk.T).T
+    trunk_tilt = np.arctan2(trunk[:,1], trunk[:,0]) * 180/np.pi
+    trunk_tilt = ss.convolve(trunk_tilt, win, mode='same')
+
     # compute usable kinematics zone
     com_dist = norm(com[:,[0,2]], axis=-1)
     zone_start = np.argmax(com_dist < 4)
     zone_stop = np.argmax(com_dist < 1)
     zone = np.arange(xyz.shape[0])
     zone = (zone >= zone_start) & (zone < zone_stop)
-    
+
     # compute metrics
     time_3m = (zone_stop-zone_start)/fps
-    time_10m = time_3m * 10 / 3
-    speed = 3 / time_3m
+    time_10m = time_3m * 10 / 3 # TODO magic numbers
+    speed = 3 / time_3m # TODO magic numbers
     com_sway = com_sway[zone].std()
+    trunk_lean = np.mean(np.abs(trunk_tilt[zone]))
+    trunk_lean_asym = np.abs(np.mean(trunk_tilt[zone]))
+
+    half_cycles, full_cycles, h = segment_gait_cycles(xyz, markers, fps)
+    stride_time = np.diff(full_cycles, 1).mean() / fps
+
+    ra = xyz[:,np.argmax(markers=='r_ankle_study'),:].copy()
+    la = xyz[:,np.argmax(markers=='L_ankle_study'),:].copy()
+    ra_xz = ra[:,[0,2]]
+    la_xz = la[:,[0,2]]
+
+    stride_lens = []
+    ankle_elevs = []
+    for cyc in full_cycles:
+        if h[cyc[0]] > 0:
+            lenny = norm(np.diff(la_xz[cyc],0))
+        else:
+            lenny = norm(np.diff(ra_xz[cyc],0))
+        stride_lens.append(lenny)
+
+        # find ankle elevation at mid-swing
+        assert len(cyc) == 2
+        ia, ib = cyc[0], cyc[1]
+        ms = ia + np.argmin(np.abs(la[ia:ib,2]-ra[ia:ib,2]))
+        ankle_elevs.append(np.abs(la[ms]-ra[ms]))
+
+
+    stride_len = np.median(stride_lens)
+    ankle_elev = np.median(ankle_elevs)
+
+    # stride_len_r = np.diff(-ra[full_cycles], 1).mean()
+    # stride_len_l = np.diff(-la[full_cycles], 1).mean()
+    # stride_len = (stride_len_r + stride_len_l) / 2
     
+    # ankle_elev = np.abs(ra[:,1]-la[:,1])
+    # ankle_elev = ss.medfilt(ankle_elev, 5)
+    # ankle_elev = np.max(ankle_elev[zone])
+
+    # r_cycles = np.array([ss.resample(-h[la:lb], W) for (la, lb) in r_cycles])
+    # mean_r_cycle = np.mean(r_cycles, axis=0)
+
     # TODO joint impedance? See Cavallo 2022
-    
+
     # return time_10m, speed, com_bob, com_sway, last_3m
     return {
             f'{trial_clean}_time_10m': float(time_10m),
             f'{trial_clean}_speed': float(speed),
             f'{trial_clean}_com_sway': float(com_sway),
+            f'{trial_clean}_stride_time': float(stride_time),
+            f'{trial_clean}_stride_len': float(stride_len),
+            f'{trial_clean}_trunk_lean': float(trunk_lean),
+            f'{trial_clean}_trunk_lean_asym': float(trunk_lean_asym),
+            f'{trial_clean}_ankle_elev': float(ankle_elev),
            }
 
 
@@ -59,6 +124,11 @@ def gait_mot_feats(df, trial_clean):
     rka = df.knee_angle_r.to_numpy()
     lka = df.knee_angle_l.to_numpy()
 
+    rha = ss.medfilt(rha, 11)
+    lha = ss.medfilt(lha, 11)
+    rka = ss.medfilt(rka, 11)
+    lka = ss.medfilt(lka, 11)
+
     ptp_r_hip_add = rha.ptp()
     ptp_l_hip_add = lha.ptp()
     mean_ptp_hip_add = (ptp_r_hip_add + ptp_l_hip_add) / 2
@@ -67,7 +137,7 @@ def gait_mot_feats(df, trial_clean):
     max_lka = lka.max()
     mean_max_ka = (max_rka + max_lka) / 2
 
-    # TODO spatiotemporal features
+    # TODO max vals are noisy -- use median over segmented gait cycles instead
 
     # stride length (normalized by height?)
     # foot drop: max dorsiflexion angle during swing
@@ -87,8 +157,14 @@ def gait_mot_feats(df, trial_clean):
 
 def feats_gait(trc_fpath, mot_fpath, model_fpath, trial_clean='gait'):
     fps, markers, xyz = read_trc(trc_fpath)
+
     com = center_of_mass(model_fpath, mot_fpath)
     comv = center_of_mass_vel(model_fpath, mot_fpath)
+    # rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    # lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
+    # com = (rh + lh) / 2
+    # comv = np.diff(com, axis=1, prepend=0)
+
     trc_feats = gait_trc_feats(xyz, markers, fps, com, comv, trial_clean)
 
     df = read_mot(mot_fpath)

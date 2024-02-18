@@ -21,7 +21,8 @@ def angle_between_all(s1, s2):
         out[i] = angle_between(s1[i,:], s2[i,:])
     return out
 
-def trc_arm_angles(xyz, markers):
+
+def trc_arm_angles(xyz, markers, medfilt=11):
     # shoulder, elbow, and wrist markers
     # rs = xyz[:,np.argmax(markers=='RShoulder'),:]
     # ls = xyz[:,np.argmax(markers=='LShoulder'),:]
@@ -46,6 +47,12 @@ def trc_arm_angles(xyz, markers):
     rea = angle_between_all(rw-re, re-rs) * 180 / np.pi
     lsa = angle_between_all(le-ls, grav) * 180 / np.pi
     lea = angle_between_all(lw-le, le-ls) * 180 / np.pi
+
+    if medfilt:
+        rsa = ss.medfilt(rsa, medfilt)
+        rea = ss.medfilt(rea, medfilt)
+        lsa = ss.medfilt(lsa, medfilt)
+        lea = ss.medfilt(lea, medfilt)
 
     return rsa, rea, lsa, lea
 
@@ -114,8 +121,6 @@ def segment_gait_cycles(xyz, markers, fps):
 
 
 def gait_kin(xyz, markers, fps, df, la, lb, W=16):
-    # TODO normalize by height?
-
     # ankle height difference
     rah = xyz[:,np.argmax(markers=='r_ankle_study'),1]
     lah = xyz[:,np.argmax(markers=='L_ankle_study'),1]

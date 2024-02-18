@@ -1,5 +1,4 @@
 
-
 from pathlib import Path
 
 import numpy as np
@@ -61,7 +60,7 @@ def tug_trc_feats(xyz, markers, fps, trial_clean):
 
 
 def tug_mot_feats(df):
-    return {} # TODO
+    return {}
 
 
 def feats_tug(trc_fpath, mot_fpath, trial_clean='tug'):

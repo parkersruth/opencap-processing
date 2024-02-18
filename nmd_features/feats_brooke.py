@@ -17,21 +17,26 @@ def brooke_trc_feats(xyz, markers):
     min_sa = np.vstack([rsa, lsa]).min(0)
     max_min_sa = min_sa.max()
 
-    rea -= rea.min()
-    lea -= lea.min()
+    # rea -= rea.min()
+    # lea -= lea.min()
     max_ea = np.vstack([rea, lea]).max(0)
     max_max_ea = np.max(max_ea)
-    min_sa_at_ea_break = np.max(min_sa[max_ea < 30])
+    window = max_ea < 30
+    if np.any(window):
+        min_sa_at_ea_break = np.max(min_sa[window]) # TODO magic number
+    else:
+        min_sa_at_ea_break = np.min(min_sa)
     max_ea_at_max_min_sa = max_ea[np.argmax(min_sa)]
 
-    # TODO peak shoulder moment (SDU to fix shoulder model)
+    max_sa_ea_ratio = np.max(mean_sa / (mean_ea+90))
 
     return {
             'brooke_max_mean_sa': float(max_mean_sa),
-            'brooke_max_max_ea': float(max_max_ea),
+            # 'brooke_max_max_ea': float(max_max_ea),
             'brooke_max_min_sa': float(max_min_sa),
             'brooke_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),
-            'brooke_min_sa_at_ea_break': float(min_sa_at_ea_break),
+            # 'brooke_min_sa_at_ea_break': float(min_sa_at_ea_break),
+            'brooke_max_sa_ea_ratio': float(max_sa_ea_ratio),
            }
 
 
@@ -56,11 +61,16 @@ def feats_brooke(trc_fpath, sto_fpath):
 
 if __name__ == '__main__':
     feats = feats_brooke(snakemake.input['trc'], snakemake.input['sto'])
-    # feats['sid'] = snakemake.wildcards['sid']
-    # feats['trial'] = snakemake.wildcards['trial']
 
     outpath = Path(snakemake.output[0])
     outpath.parent.mkdir(exist_ok=True)
     df = pd.DataFrame.from_dict(feats, orient='index')
     df.to_csv(outpath, header=False)
+
+    # import sys
+
+    # print(sys.argv)
+    # feats = feats_brooke(sys.argv[1], sys.argv[2])
+
+
 

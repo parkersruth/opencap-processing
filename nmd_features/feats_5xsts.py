@@ -47,6 +47,12 @@ def sts_trc_feats(xyz, markers, fps):
     grav[:,1] = -1
 
     trunk_angle = angle_between_all(mh-c7, grav) * 180 / np.pi
+
+    # smooth trunk angle with 0.5s hann window
+    win = ss.windows.hann(int(0.5*fps))
+    win /= np.sum(win)
+    trunk_angle = ss.convolve(trunk_angle, win, mode='same')
+
     lean_ptps = []
     lean_maxs = []
     lean_avels = []
@@ -74,12 +80,12 @@ def sts_trc_feats(xyz, markers, fps):
             '5xsts_speed': float(sts_speed),
             '5xsts_lean_ptp': float(lean_ptp),
             '5xsts_lean_max': float(lean_max),
-            '5xsts_lean_avel': float(lean_avel),
+            # '5xsts_lean_avel': float(lean_avel),
            }
 
 
 def sts_mot_feats(df):
-    return {} # TODO
+    return {}
 
 
 def feats_5xsts(trc_fpath, mot_fpath):

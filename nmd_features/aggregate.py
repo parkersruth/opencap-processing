@@ -8,7 +8,8 @@ def agg(fpaths):
     oc_feats_dir = datadir / 'opencap_features'
 
     df_part = pd.read_excel(datadir / 'participant_info.xlsx')
-    df_session = pd.read_excel(datadir / 'session_info.xlsx')
+    df_trial = pd.read_excel(datadir / 'trial_info.xlsx')
+    # df_session = pd.read_excel(datadir / 'session_info.xlsx')
 
     dfs = []
     for fpath in fpaths:
@@ -17,20 +18,25 @@ def agg(fpaths):
         df = pd.read_csv(fpath, header=None, names=['feature', 'value'])
         df['pid'] = pid
         df['sid'] = sid
-        df['trial'] = trial_clean
+        df['trial'] = trial
         df['trial_clean'] = trial_clean
         dfs.append(df)
 
     df_feat = pd.concat(dfs)#.groupby(['pid', 'trial_clean'])
 
-    # add datetime object and date string from session info
-    df_date = df_session[['sid', 'created_at']].copy()
-    df_date['date'] = pd.to_datetime(df_date['created_at'])
-    df_date['date'] = df_date.date.dt.tz_convert('America/Los_Angeles')
-    # TODO handle MDF time zone differently?
+    # add datetime object and date string from trial info
+    df_date = df_trial[['sid', 'pid', 'trial', 'created_at']].copy()
+    df_date['dt'] = pd.to_datetime(df_date['created_at'])
 
-    df_date['date'] = df_date.date.dt.strftime('%Y-%m-%d')
-    df_feat = df_date[['sid', 'date']].merge(df_feat, on='sid', how='right')
+    # create date strings (MDF conference in different timezone)
+    df_date['date'] = ''
+    is_mdf = df_date.pid.str.startswith('mdf_')
+    df_date.loc[~is_mdf,'date'] = df_date.loc[~is_mdf,'dt'].dt.tz_convert('America/Los_Angeles').dt.strftime('%Y-%m-%d')
+    df_date.loc[is_mdf,'date'] = df_date.loc[is_mdf,'dt'].dt.tz_convert('America/New_York').dt.strftime('%Y-%m-%d')
+    df_date = df_date[['sid', 'trial', 'date', 'created_at']]
+
+    # merge date fields with features
+    df_feat = df_date.merge(df_feat, on=['sid', 'trial'], how='right')
 
     # merge with participant info
     df_feat = df_feat.merge(df_part[['pid', 'date', 'type']], how='left')
