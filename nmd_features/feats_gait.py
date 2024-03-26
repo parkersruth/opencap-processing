@@ -132,6 +132,9 @@ def gait_mot_feats(df, trial_clean):
     ptp_r_hip_add = rha.ptp()
     ptp_l_hip_add = lha.ptp()
     mean_ptp_hip_add = (ptp_r_hip_add + ptp_l_hip_add) / 2
+
+    # TODO separately analyze abduction vs. adduction
+    # cycle phase-specific metrics could be more informative
     
     max_rka = rka.max()
     max_lka = lka.max()

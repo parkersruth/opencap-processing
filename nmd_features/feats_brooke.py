@@ -3,9 +3,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import scipy.signal as ss
 
 from utilsLoaders import read_trc, read_mot
-from utils import trc_arm_angles
+from utils import trc_arm_angles, angle_between_all
 
 
 def brooke_trc_feats(xyz, markers):
@@ -30,6 +31,16 @@ def brooke_trc_feats(xyz, markers):
 
     max_sa_ea_ratio = np.max(mean_sa / (mean_ea+90))
 
+    # c7 = xyz[:,np.argmax(markers=='r_C7'),:].copy()
+    # rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    # lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
+    # midhip = (rh + lh) / 2
+    # grav = np.zeros_like(c7)
+    # grav[:,1] = -1
+    # trunk_angle = angle_between_all(grav, midhip-c7) * 180 / np.pi
+    # max_trunk_angle = trunk_angle.max()
+    # trunk_angle_at_max_min_sa = trunk_angle[np.argmax(min_sa)]
+
     return {
             'brooke_max_mean_sa': float(max_mean_sa),
             # 'brooke_max_max_ea': float(max_max_ea),
@@ -37,30 +48,45 @@ def brooke_trc_feats(xyz, markers):
             'brooke_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),
             # 'brooke_min_sa_at_ea_break': float(min_sa_at_ea_break),
             'brooke_max_sa_ea_ratio': float(max_sa_ea_ratio),
+            # 'brooke_max_trunk_angle': float(max_trunk_angle),
+            # 'brooke_trunk_angle_at_max_min_sa': float(trunk_angle_at_max_min_sa),
            }
 
 
 def brooke_sto_feats(df):
     # TODO max shoulder moment (SDU to fix shoulder model)
 
-    # return None
-    return {}
+    # re = df.sh_elev_r_moment.values
+    # le = df.sh_elev_l_moment.values
+
+    # fps = (len(df)-1) / df.time.values.ptp()
+    # W = int(fps) // 2 * 2 + 1
+    # re = ss.medfilt(re, W)
+    # le = ss.medfilt(le, W)
+
+    # min_sm = np.vstack([re, le]).min(0)
+    # max_min_sm = min_sm.max()
+
+    return {
+            # 'brooke_max_min_sm':max_min_sm,
+           }
 
 
 def feats_brooke(trc_fpath, sto_fpath):
     fps, markers, xyz = read_trc(trc_fpath)
     trc_feats = brooke_trc_feats(xyz, markers)
 
-    df = read_mot(sto_fpath)
-    sto_feats = brooke_sto_feats(df)
+    # df = read_mot(sto_fpath)
+    # sto_feats = brooke_sto_feats(df)
 
     feats = trc_feats.copy()
-    feats.update(sto_feats)
+    # feats.update(sto_feats)
     return feats
 
 
 if __name__ == '__main__':
-    feats = feats_brooke(snakemake.input['trc'], snakemake.input['sto'])
+    # feats = feats_brooke(snakemake.input['trc'], snakemake.input['sto'])
+    feats = feats_brooke(snakemake.input['trc'], None)
 
     outpath = Path(snakemake.output[0])
     outpath.parent.mkdir(exist_ok=True)

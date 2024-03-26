@@ -12,6 +12,10 @@ FEAT_FILES = []
 for trial_type in trial_types:
     df_temp = df_trial[df_trial.trial_clean == trial_type]
     # df_temp = df_temp[~df_temp.pid.str.contains('DB')]
+
+    # if trial_type == 'brooke':
+    #     df_temp = df_temp[df_temp.pid != 'p053'] # TODO temp hack
+
     FEAT_FILES += df_temp.apply(
         lambda row: f'{datadir}/opencap_features/{trial_type}/{row.pid}__{row.sid}__{row.trial}.csv',
         axis=1).to_list()
@@ -38,7 +42,7 @@ rule feature_aggregate:
 rule featurize_arm_rom:
     input:
         trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto',
+        # sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto',
         neu='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/neutral/neutral.trc',
     output:
         '{datadir}/opencap_features/arm_rom/{pid}__{sid}__{trial}.csv'
@@ -48,7 +52,7 @@ rule featurize_arm_rom:
 rule featurize_brooke:
     input:
         trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto'
+        # sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto'
     output:
         '{datadir}/opencap_features/brooke/{pid}__{sid}__{trial}.csv'
     script:

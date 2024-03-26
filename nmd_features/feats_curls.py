@@ -18,9 +18,6 @@ def curls_trc_feats(xyz, markers):
     min_max_ea = min(max_rea, max_lea)
     max_mean_ea = np.max(mean_ea)
 
-    # TODO wrist flexion range of motion
-    # TODO wrist extension range of motion
-
     return {
             'curls_min_max_ea': float(min_max_ea),
             'curls_max_mean_ea': float(max_mean_ea),
