@@ -91,22 +91,8 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
     stride_len = np.median(stride_lens)
     ankle_elev = np.median(ankle_elevs)
 
-    # stride_len_r = np.diff(-ra[full_cycles], 1).mean()
-    # stride_len_l = np.diff(-la[full_cycles], 1).mean()
-    # stride_len = (stride_len_r + stride_len_l) / 2
-    
-    # ankle_elev = np.abs(ra[:,1]-la[:,1])
-    # ankle_elev = ss.medfilt(ankle_elev, 5)
-    # ankle_elev = np.max(ankle_elev[zone])
-
-    # r_cycles = np.array([ss.resample(-h[la:lb], W) for (la, lb) in r_cycles])
-    # mean_r_cycle = np.mean(r_cycles, axis=0)
-
-    # TODO joint impedance? See Cavallo 2022
-
-    # return time_10m, speed, com_bob, com_sway, last_3m
     return {
-            f'{trial_clean}_time_10m': float(time_10m),
+            # f'{trial_clean}_time_10m': float(time_10m),
             f'{trial_clean}_speed': float(speed),
             f'{trial_clean}_com_sway': float(com_sway),
             f'{trial_clean}_stride_time': float(stride_time),

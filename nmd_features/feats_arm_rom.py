@@ -108,22 +108,23 @@ def arm_rom_sto_feats(df):
     return {}
 
 
-def feats_arm_rom(trc_fpath, sto_fpath, neu_fpath):
+# def feats_arm_rom(trc_fpath, sto_fpath, neu_fpath):
+def feats_arm_rom(trc_fpath, neu_fpath):
     fps, markers, xyz = read_trc(trc_fpath)
     _, _, xyz_neu = read_trc(neu_fpath)
     trc_feats = arm_rom_trc_feats(xyz, markers, xyz_neu)
 
-    df = read_mot(sto_fpath)
-    sto_feats = arm_rom_sto_feats(df)
+    # df = read_mot(sto_fpath)
+    # sto_feats = arm_rom_sto_feats(df)
 
     feats = trc_feats.copy()
-    feats.update(sto_feats)
+    # feats.update(sto_feats)
     return feats
 
 
 if __name__ == '__main__':
     feats = feats_arm_rom(snakemake.input['trc'],
-                          snakemake.input['sto'],
+                          # snakemake.input['sto'],
                           snakemake.input['neu'])
     outpath = Path(snakemake.output[0])
     outpath.parent.mkdir(exist_ok=True)

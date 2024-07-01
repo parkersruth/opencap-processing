@@ -71,6 +71,7 @@ def center_of_mass_vel(modelPath, motionPath):
 
 
 def segment_gait_cycles(xyz, markers, fps):
+
     ra = xyz[:,np.argmax(markers=='r_ankle_study'),:].copy()
     la = xyz[:,np.argmax(markers=='L_ankle_study'),:].copy()
     ma = (ra - la)
@@ -79,6 +80,12 @@ def segment_gait_cycles(xyz, markers, fps):
     win = ss.windows.hann(int(0.5*fps))
     win /= np.sum(win)
     h = ss.convolve(h, win, mode='same')
+
+    rhjc = xyz[:,np.argmax(markers=='RHJC_study'),:]
+    lhjc = xyz[:,np.argmax(markers=='LHJC_study'),:]
+    com = (rhjc + lhjc) / 2
+    dist = norm(com - com[-1,:], axis=1)
+    h[dist > 7] = 0
 
     h /= h.ptp()
 
