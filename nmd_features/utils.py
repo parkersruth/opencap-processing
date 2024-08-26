@@ -81,8 +81,8 @@ def segment_gait_cycles(xyz, markers, fps):
     win /= np.sum(win)
     h = ss.convolve(h, win, mode='same')
 
-    rhjc = xyz[:,np.argmax(markers=='RHJC_study'),:]
-    lhjc = xyz[:,np.argmax(markers=='LHJC_study'),:]
+    rhjc = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    lhjc = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
     com = (rhjc + lhjc) / 2
     dist = norm(com - com[-1,:], axis=1)
     h[dist > 7] = 0

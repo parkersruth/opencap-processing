@@ -18,7 +18,7 @@ def sts_trc_feats(xyz, markers, fps):
     lh = xyz[:,np.argmax(markers=='lHJC_study'),:]
     mh = (rh + lh) / 2
 
-    h = mh[:,1]
+    h = mh[:,1].copy()
     h -= h.min()
     h /= h.max()
     locs, _ = ss.find_peaks(h, height=0.75, prominence=0.5)
@@ -69,18 +69,44 @@ def sts_trc_feats(xyz, markers, fps):
         lean_maxs.append(seg.max())
         lean_avels.append(np.max(np.diff(seg))*fps)
 
-    lean_ptp = np.median(lean_ptps)
-    lean_max = np.median(lean_maxs)
-    lean_avel = np.median(lean_avels)
+    lean_ptp = np.mean(lean_ptps)
+    lean_max = np.mean(lean_maxs)
+    lean_avel = np.mean(lean_avels)
+
+
+    # # measure relative hand heights
+    # rs = xyz[:,np.argmax(markers=='r_shoulder_study'),1]
+    # ls = xyz[:,np.argmax(markers=='L_shoulder_study'),1]
+    # ms = (rs + ls) / 2
+    # re = xyz[:,np.argmax(markers=='r_lelbow_study'),1]
+    # le = xyz[:,np.argmax(markers=='L_lelbow_study'),1]
+    # me = (re + le) / 2
+    # rw = xyz[:,np.argmax(markers=='r_lwrist_study'),1]
+    # lw = xyz[:,np.argmax(markers=='L_lwrist_study'),1]
+    # mw = (rw + lw) / 2
+    # rh = xyz[:,np.argmax(markers=='r_knee_study'),1]
+    # lh = xyz[:,np.argmax(markers=='L_knee_study'),1]
+    # mh = (rh + lh) / 2
+    # h = (mw - me) / (ms - mh)
+    # mean_hand_elev = np.mean(h[la:lb])
+
+    # measure width of base of support
+    rank = xyz[:,np.argmax(markers=='r_ankle_study'),:]
+    lank = xyz[:,np.argmax(markers=='L_ankle_study'),:]
+    ankle_dist = np.linalg.norm(lank - rank, axis=1)
+    stance_width = ankle_dist[la:lb].ptp()
+
 
     return {
-            '5xsts_time_1': float(sts_time),
+            # '5xsts_time_1': float(sts_time),
             '5xsts_time_5': float(sts_time_5),
             # '5xsts_num': float(len(locs)),
-            '5xsts_speed': float(sts_speed),
+            # '5xsts_speed': float(sts_speed),
             '5xsts_lean_ptp': float(lean_ptp),
             '5xsts_lean_max': float(lean_max),
             # '5xsts_lean_avel': float(lean_avel),
+            # '5xsts_mean_hand_elev': float(mean_hand_elev),
+            '5xsts_stance_width': float(stance_width),
            }
 
 

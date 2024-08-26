@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 datadir = Path('./datadir')
+featdir = Path('./opencap_features')
 df_trial = pd.read_excel(datadir / 'trial_info.xlsx')
 
 trial_types = ['brooke', 'arm_rom', 'curls', '10mwt', '10mwrt',
@@ -13,11 +14,12 @@ for trial_type in trial_types:
     df_temp = df_trial[df_trial.trial_clean == trial_type]
     # df_temp = df_temp[~df_temp.pid.str.contains('DB')]
 
-    # if trial_type == 'brooke':
-    #     df_temp = df_temp[df_temp.pid != 'p053'] # TODO temp hack
+    if trial_type == '10mwt':
+        df_temp = df_temp[df_temp.pid != 'DHD-012'] # TODO temp hack
+        df_temp = df_temp[df_temp.pid != 'DB237'] # TODO temp hack
 
     FEAT_FILES += df_temp.apply(
-        lambda row: f'{datadir}/opencap_features/{trial_type}/{row.pid}__{row.sid}__{row.trial}.csv',
+        lambda row: f'{featdir}/{trial_type}/{row.pid}__{row.sid}__{row.trial}.csv',
         axis=1).to_list()
 
 AGG_FILE = f'{datadir}/df_feat.pkl'
@@ -41,95 +43,95 @@ rule feature_aggregate:
 
 rule featurize_arm_rom:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        # sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto',
-        neu='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/neutral/neutral.trc',
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        # sto=datadir/'/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto',
+        neu=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/neutral/neutral.trc',
     output:
-        '{datadir}/opencap_features/arm_rom/{pid}__{sid}__{trial}.csv'
+        '{featdir}/arm_rom/{pid}__{sid}__{trial}.csv'
     script:
         'feats_arm_rom.py'
 
 rule featurize_brooke:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        # sto='{datadir}/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto'
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        # sto=datadir/'/opencap_data/{sid}/OpenSimData/Dynamics/{trial}_shoulder.sto'
     output:
-        '{datadir}/opencap_features/brooke/{pid}__{sid}__{trial}.csv'
+        '{featdir}/brooke/{pid}__{sid}__{trial}.csv'
     script:
         'feats_brooke.py'
 
 rule featurize_curls:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
     output:
-        '{datadir}/opencap_features/curls/{pid}__{sid}__{trial}.csv'
+        '{featdir}/curls/{pid}__{sid}__{trial}.csv'
     script:
         'feats_curls.py'
 
 rule featurize_10mwt:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
-        model='{datadir}/opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        model=datadir/'opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
     output:
-        '{datadir}/opencap_features/10mwt/{pid}__{sid}__{trial}.csv'
+        '{featdir}/10mwt/{pid}__{sid}__{trial}.csv'
     script:
         'feats_10mwt.py'
 
 rule featurize_10mwrt:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
-        model='{datadir}/opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        model=datadir/'opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
     output:
-        '{datadir}/opencap_features/10mwrt/{pid}__{sid}__{trial}.csv'
+        '{featdir}/10mwrt/{pid}__{sid}__{trial}.csv'
     script:
         'feats_10mwrt.py'
 
 rule featurize_5xsts:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
     output:
-        '{datadir}/opencap_features/5xsts/{pid}__{sid}__{trial}.csv'
+        '{featdir}/5xsts/{pid}__{sid}__{trial}.csv'
     script:
         'feats_5xsts.py'
 
 rule featurize_tug_cone:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
     output:
-        '{datadir}/opencap_features/tug_cone/{pid}__{sid}__{trial}.csv'
+        '{featdir}/tug_cone/{pid}__{sid}__{trial}.csv'
     script:
         'feats_tug_cone.py'
 
 rule featurize_tug_line:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
     output:
-        '{datadir}/opencap_features/tug_line/{pid}__{sid}__{trial}.csv'
+        '{featdir}/tug_line/{pid}__{sid}__{trial}.csv'
     script:
         'feats_tug_line.py'
 
 rule featurize_jump:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
-        model='{datadir}/opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        model=datadir/'opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
     output:
-        '{datadir}/opencap_features/jump/{pid}__{sid}__{trial}.csv'
+        '{featdir}/jump/{pid}__{sid}__{trial}.csv'
     script:
         'feats_jump.py'
 
 rule featurize_toe_stand:
     input:
-        trc='{datadir}/opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
-        mot='{datadir}/opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
-        model='{datadir}/opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
+        trc=datadir/'opencap_data/{sid}/MarkerData/PostAugmentation/{trial}/{trial}.trc',
+        mot=datadir/'opencap_data/{sid}/OpenSimData/Kinematics/{trial}.mot',
+        model=datadir/'opencap_data/{sid}/OpenSimData/Model/LaiUhlrich2022_scaled.osim'
     output:
-        '{datadir}/opencap_features/toe_stand/{pid}__{sid}__{trial}.csv'
+        '{featdir}/toe_stand/{pid}__{sid}__{trial}.csv'
     script:
         'feats_toe_stand.py'
 

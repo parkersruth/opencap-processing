@@ -15,39 +15,10 @@ from utils import angle_between_all
 
 
 def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
+    half_cycles, full_cycles, h = segment_gait_cycles(xyz, markers, fps)
+
     # com = xyz[:,np.argmax(markers == 'midHip'),:] # TODO uses actual CoM
     com -= com[-2,:]
-    
-    # compute direction of travel
-    com_xz = com[:,[0,2]].copy()
-    direction = com_xz[0,:] - com_xz[-1,:]
-    direction /= norm(direction)
-
-    # LP filter kernel
-    win = ss.windows.hann(int(0.5*fps))
-    win /= np.sum(win)
-
-    # compute lateral sway
-    comv_xz = comv[:,[0,2]].copy()
-    comv_xz -= np.outer(comv_xz @ direction, direction)
-    com_sway = comv_xz[:,0]
-    com_sway = ss.convolve(com_sway, win, mode='same')
-
-    # compute lateral lean
-    direc = np.array([direction[0], 0, direction[1]])
-    agrav = np.array([0, 1, 0])
-    perp = np.cross(direc, agrav)
-    perp /= norm(perp)
-    new_basis = np.stack([agrav, perp, direc])
-    P = np.linalg.inv(new_basis)
-    c7 = xyz[:,np.argmax(markers=='r_C7'),:]
-    rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
-    lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
-    midhip = (rh + lh) / 2
-    trunk = c7 - midhip.copy()
-    trunk = (P @ trunk.T).T
-    trunk_tilt = np.arctan2(trunk[:,1], trunk[:,0]) * 180/np.pi
-    trunk_tilt = ss.convolve(trunk_tilt, win, mode='same')
 
     # compute usable kinematics zone
     com_dist = norm(com[:,[0,2]], axis=-1)
@@ -55,6 +26,40 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
     zone_stop = np.argmax(com_dist < 1)
     zone = np.arange(xyz.shape[0])
     zone = (zone >= zone_start) & (zone < zone_stop)
+
+    # LP filter kernel
+    win = ss.windows.hann(int(0.5*fps))
+    win /= np.sum(win)
+    
+    # compute direction of travel
+    com_xz = com[:,[0,2]].copy()
+    direction = com_xz[0,:] - com_xz[-1,:]
+    direction /= norm(direction)
+
+    # transform to basis aligned with walk direction
+    direc = com[-1,:] - com[0,:]
+    direc /= norm(direc)
+    pos_z = np.array([0.0, 1.0, 0.0])
+    agrav = pos_z - (pos_z @ direc) / (direc @ direc) * direc
+    agrav /= norm(agrav)
+    perp = np.cross(agrav, direc)
+    perp /= norm(perp)
+    new_basis = np.stack([perp, agrav, direc])
+    P = np.linalg.inv(new_basis)
+    xyz = np.einsum('...ij,jk->...ik', xyz, P)
+
+    # compute lateral sway
+    com_sway = comv[:,0]
+    com_sway = ss.convolve(com_sway, win, mode='same')
+
+    # compute lateral lean
+    c7 = xyz[:,np.argmax(markers=='r_C7'),:]
+    rh = xyz[:,np.argmax(markers=='RHJC_study'),:].copy()
+    lh = xyz[:,np.argmax(markers=='LHJC_study'),:].copy()
+    midhip = (rh + lh) / 2
+    trunk = c7 - midhip.copy()
+    trunk_tilt = np.arctan2(trunk[:,1], trunk[:,0]) * 180/np.pi
+    trunk_tilt = ss.convolve(trunk_tilt, win, mode='same')
 
     # compute metrics
     time_3m = (zone_stop-zone_start)/fps
@@ -64,21 +69,18 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
     trunk_lean = np.mean(np.abs(trunk_tilt[zone]))
     trunk_lean_asym = np.abs(np.mean(trunk_tilt[zone]))
 
-    half_cycles, full_cycles, h = segment_gait_cycles(xyz, markers, fps)
     stride_time = np.diff(full_cycles, 1).mean() / fps
 
     ra = xyz[:,np.argmax(markers=='r_ankle_study'),:].copy()
     la = xyz[:,np.argmax(markers=='L_ankle_study'),:].copy()
-    ra_xz = ra[:,[0,2]]
-    la_xz = la[:,[0,2]]
 
     stride_lens = []
     ankle_elevs = []
     for cyc in full_cycles:
         if h[cyc[0]] > 0:
-            lenny = norm(np.diff(la_xz[cyc],0))
+            lenny = norm(np.diff(la[cyc],0))
         else:
-            lenny = norm(np.diff(ra_xz[cyc],0))
+            lenny = norm(np.diff(ra[cyc],0))
         stride_lens.append(lenny)
 
         # find ankle elevation at mid-swing
@@ -86,10 +88,52 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
         ia, ib = cyc[0], cyc[1]
         ms = ia + np.argmin(np.abs(la[ia:ib,2]-ra[ia:ib,2]))
         ankle_elevs.append(np.abs(la[ms]-ra[ms]))
-
-
     stride_len = np.median(stride_lens)
     ankle_elev = np.median(ankle_elevs)
+
+
+    # get arm vectors
+    rs = xyz[:,np.argmax(markers=='r_shoulder_study'),:].copy()
+    ls = xyz[:,np.argmax(markers=='L_shoulder_study'),:].copy()
+    re = xyz[:,np.argmax(markers=='r_lelbow_study'),:].copy()
+    le = xyz[:,np.argmax(markers=='L_lelbow_study'),:].copy()
+    rw = xyz[:,np.argmax(markers=='r_lwrist_study'),:].copy()
+    lw = xyz[:,np.argmax(markers=='L_lwrist_study'),:].copy()
+    ls[:,0] *= -1
+    le[:,0] *= -1
+    lw[:,0] *= -1
+    
+    # compute normalized segment vectors
+    rua = (re - rs)
+    lua = (le - ls)
+    rla = (rw - re)
+    lla = (lw - le)
+    rua /= norm(rua, axis=-1, keepdims=True)
+    rla /= norm(rla, axis=-1, keepdims=True)
+    lua /= norm(lua, axis=-1, keepdims=True)
+    lla /= norm(lla, axis=-1, keepdims=True)
+
+    # sort arm segments by contralateral and ipsilateral patterns
+    W = int(np.mean([lb - la for (la, lb) in full_cycles])) # resample width
+    r_ipsi = []
+    r_contra = []
+    l_ipsi = []
+    l_contra = []
+    for k, (loca, locb) in enumerate(full_cycles):
+        if h[loca] < 0:
+            r_ipsi.append(ss.resample(rla[loca:locb], W))
+            l_contra.append(ss.resample(lla[loca:locb], W))
+        else:
+            r_contra.append(ss.resample(rla[loca:locb], W))
+            l_ipsi.append(ss.resample(lla[loca:locb], W))
+        
+    # join and concatenate to make mean arm profile for R and L
+    r_mean = np.concatenate([np.array(r_ipsi).mean(0), np.array(r_contra).mean(0)])
+    l_mean = np.concatenate([np.array(l_ipsi).mean(0), np.array(l_contra).mean(0)])
+
+    # compute asymmetry between R and L profiles
+    aba = angle_between_all(r_mean, l_mean) * 180 / np.pi
+    arm_asym = np.mean(aba)
 
     return {
             # f'{trial_clean}_time_10m': float(time_10m),
@@ -100,6 +144,7 @@ def gait_trc_feats(xyz, markers, fps, com, comv, trial_clean):
             f'{trial_clean}_trunk_lean': float(trunk_lean),
             f'{trial_clean}_trunk_lean_asym': float(trunk_lean_asym),
             f'{trial_clean}_ankle_elev': float(ankle_elev),
+            f'{trial_clean}_arm_asym': float(arm_asym),
            }
 
 
@@ -176,7 +221,6 @@ if __name__ == '__main__':
     outpath.parent.mkdir(exist_ok=True)
     df = pd.DataFrame.from_dict(feats, orient='index')
     df.to_csv(outpath, header=False)
-
 
 
 
