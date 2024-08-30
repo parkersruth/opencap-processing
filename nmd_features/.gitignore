@@ -1,0 +1,8 @@
+*.swp
+.snakemake
+.virtual_documents
+*.png
+datadir
+__pycache__
+*.pdf
+opencap_features/
