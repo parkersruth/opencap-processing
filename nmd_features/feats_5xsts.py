@@ -103,8 +103,8 @@ def sts_trc_feats(xyz, markers, fps):
             # '5xsts_num': float(len(locs)),
             # '5xsts_speed': float(sts_speed),
             # '5xsts_lean_ptp': float(lean_ptp),
-            # '5xsts_lean_max': float(lean_max),
-            '5xsts_lean_avel': float(lean_avel),
+            '5xsts_lean_max': float(lean_max),
+            # '5xsts_lean_avel': float(lean_avel),
             # '5xsts_mean_hand_elev': float(mean_hand_elev),
             '5xsts_stance_width': float(stance_width),
            }
