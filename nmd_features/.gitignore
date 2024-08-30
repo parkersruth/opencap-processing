@@ -7,3 +7,4 @@ datadir
 __pycache__
 *.pdf
 opencap_features/
+opencap_features_old/
