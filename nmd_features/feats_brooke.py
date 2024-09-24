@@ -23,7 +23,6 @@ def brooke_trc_feats(xyz, markers):
 
     max_sa_ea_ratio = np.max(mean_sa / (mean_ea+90))
     return {
-
             'brooke_max_mean_sa': float(max_mean_sa),
             'brooke_max_min_sa': float(max_min_sa),
             'brooke_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),

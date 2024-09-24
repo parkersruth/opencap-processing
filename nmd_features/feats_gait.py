@@ -153,6 +153,15 @@ def gait_mot_feats(df, trial_clean):
     rka = ss.medfilt(rka, 11)
     lka = ss.medfilt(lka, 11)
 
+    # raa = df.ankle_angle_r.to_numpy()
+    # laa = df.ankle_angle_l.to_numpy()
+    # raa = ss.medfilt(raa, 5)
+    # laa = ss.medfilt(laa, 5)
+
+    # max_raa = raa.max()
+    # max_laa = laa.max()
+    # mean_max_aa = (max_raa + max_laa) / 2
+
     ptp_r_hip_add = rha.ptp()
     ptp_l_hip_add = lha.ptp()
     mean_ptp_hip_add = (ptp_r_hip_add + ptp_l_hip_add) / 2
@@ -179,6 +188,7 @@ def gait_mot_feats(df, trial_clean):
     return {
             f'{trial_clean}_mean_ptp_hip_add': float(mean_ptp_hip_add),
             f'{trial_clean}_mean_max_ka': float(mean_max_ka),
+            # f'{trial_clean}_mean_max_aa': float(mean_max_ka),
            }
 
 

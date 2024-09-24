@@ -94,6 +94,7 @@ def sts_trc_feats(xyz, markers, fps):
     rank = xyz[:,np.argmax(markers=='r_ankle_study'),:]
     lank = xyz[:,np.argmax(markers=='L_ankle_study'),:]
     ankle_dist = np.linalg.norm(lank - rank, axis=1)
+    # stance_width = ankle_dist[la:lb].ptp()
     stance_width = ankle_dist[la:lb].ptp()
 
 

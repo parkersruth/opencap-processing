@@ -28,16 +28,20 @@ def workspace_right(rs, ls, rw, arm_len):
 
     # clip contralateral crossover
     rw[:,0] = rw[:,0].clip(0, None)
+    # rw[:,2] = rw[:,2].clip(0, None)
 
     # normalize by arm length
     # arm_len = np.max(norm(rw, axis=1)) # TODO better definition?
-    rw /= arm_len
+    # rw /= arm_len
 
     # compute reachable workspace metrics
     ch = ConvexHull(rw)
-    rewo_area = ch.area / (3 * np.pi) # hemisphere area
-    rewo_sphere = ch.volume / (1/3 * np.pi) # hemisphere volume
-    rewo_cube = np.product(rw.ptp(axis=0)) / 4 # cuboid volume
+    # rewo_area = ch.area / (3 * np.pi) # hemisphere area
+    # rewo_sphere = ch.volume / (1/3 * np.pi) # hemisphere volume
+    # rewo_cube = np.product(rw.ptp(axis=0)) / 4 # cuboid volume
+    rewo_area = ch.area
+    rewo_sphere = ch.volume
+    rewo_cube = np.product(rw.ptp(axis=0))
 
     return rw*arm_len, rewo_area, rewo_sphere, rewo_cube
 
@@ -91,13 +95,14 @@ def arm_rom_trc_feats(xyz, markers, xyz_neu):
     rw_area, rw_sphere, rw_cube = workspace(xyz, markers, xyz_neu)
 
     return {
-            'arm_rom_max_mean_sa': float(max_mean_sa),
-            'arm_rom_max_min_sa': float(max_min_sa),
-            'arm_rom_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),
-            # 'arm_rom_mean_ea_at_max_mean_sa': float(mean_ea_at_max_mean_sa),
+            # 'arm_rom_max_mean_sa': float(max_mean_sa),
+            # 'arm_rom_max_min_sa': float(max_min_sa),
+            # 'arm_rom_max_ea_at_max_min_sa': float(max_ea_at_max_min_sa),
             'arm_rom_rw_area': float(rw_area),
+
             # 'arm_rom_rw_sphere': float(rw_sphere),
             # 'arm_rom_rw_cube': float(rw_cube),
+            # 'arm_rom_mean_ea_at_max_mean_sa': float(mean_ea_at_max_mean_sa),
            }
 
 
